@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ftp-outward
+  labels:
+    app: ftp-outward
+spec:
+  type: NodePort
+  ports:
+  - port: 20
+    nodePort: 20
+    name: ftp-data
+  - port: 21
+    nodePort: 21
+    name: ftp
+  - port: 40000
+    nodePort: 40000
+    name: ftp-data-pasv
+  selector:
+    app: ftp-outward
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ftp-outward
+spec:
+  selector:
+    matchLabels:
+      app: ftp-outward
+  template:
+    metadata:
+      labels:
+        app: ftp-outward
+    spec:
+      containers:
+      - name: ftp-outward
+        image: ftp-kube:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 20
+          protocol: TCP
+        - containerPort: 21
+          protocol: TCP
+        - containerPort: 40000
+          protocol: TCP
+        env:
+        - name: USER_NAME
+          value: "toyota" # for Keyence
+        - name: USER_PASSWD
+          value: "Toyota2019!" # for Keyence
+        - name: FTP_PASV_MIN_PORT
+          value: "40000"
+        - name: FTP_PASV_MAX_PORT
+          value: "40000"
+        volumeMounts:
+        - name: ftp-storage
+          mountPath: /data
+        - name: ftp-conf
+          mountPath: /etc/vsftpd/vsftpd.conf
+        - name: ftp-log
+          mountPath: /var/log
+      volumes:
+      - name: ftp-storage
+        hostPath:
+          path: /var/lib/aion/prj/Data/ftp_data
+      - name: ftp-conf
+        hostPath:
+          path: /var/lib/aion/prj/mnt/ftp_conf/vsftpd_outward.conf
+      - name: ftp-log
+        hostPath:
+          path: /var/lib/aion/prj/mnt/ftp_log
+
